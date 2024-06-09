@@ -2,7 +2,7 @@ package service
 
 import (
 	"context" 
-	"time"
+	// "time"
 
 	"github.com/zde37/Jusgo/internal/models"
 	"github.com/zde37/Jusgo/internal/repository"
@@ -21,9 +21,9 @@ func newServiceImpl(repo repository.RepositoryProvider) *serviceImpl {
 
 func (s *serviceImpl) CreateJoke(ctx context.Context, data models.Jusgo) (models.Jusgo, error) {
 	data.ID = primitive.NewObjectID()
-	data.CreatedAt = time.Now()
-	data.UpdatedAt = time.Now()
-
+	
+	// data.CreatedAt = time.Now()
+	// data.UpdatedAt = time.Now() 
 	return s.repo.Create(ctx, data)
 }
 
@@ -50,7 +50,7 @@ func (s *serviceImpl) UpdateJoke(ctx context.Context, id string, data models.Jus
 	}
 
 	data.ID = objectID
-	data.UpdatedAt = time.Now()
+	// data.UpdatedAt = time.Now()
 	return s.repo.Update(ctx, data)
 }
 
