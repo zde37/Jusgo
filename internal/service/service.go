@@ -16,11 +16,11 @@ type ServiceProvider interface {
 }
 
 type Service struct {
-	srv ServiceProvider
+	Srvc ServiceProvider
 }
 
 func NewService(repo repository.RepositoryProvider) *Service {
 	return &Service{
-		srv: newServiceImpl(repo),
+		Srvc: newServiceImpl(repo),
 	}
 }

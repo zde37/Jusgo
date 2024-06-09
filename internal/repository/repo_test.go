@@ -18,7 +18,7 @@ func TestGet(t *testing.T) {
 	ctx := context.Background()
 	data := createJoke(t, ctx)
 
-	joke, err := testRepo.repo.Get(ctx, data.ID)
+	joke, err := testRepo.Repo.Get(ctx, data.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, joke)
 	require.Equal(t, data.ID, joke.ID)
@@ -34,7 +34,7 @@ func TestUpdate(t *testing.T) {
 	data.Joke = "I used to know a joke about Java...but I ran out of memory"
 	data.UpdatedAt = time.Now()
 
-	updatedJoke, err := testRepo.repo.Update(ctx, data)
+	updatedJoke, err := testRepo.Repo.Update(ctx, data)
 	require.NoError(t, err)
 	require.NotEmpty(t, updatedJoke)
 	require.Equal(t, data.ID, updatedJoke.ID)
@@ -61,7 +61,7 @@ func TestGetAll(t *testing.T) {
 			page:  1,
 			stub: func(t *testing.T, limit, page int64) {
 				skip := (page - 1) * limit
-				jokes, err := testRepo.repo.GetAll(ctx, skip, limit)
+				jokes, err := testRepo.Repo.GetAll(ctx, skip, limit)
 				require.NoError(t, err)
 				require.NotEmpty(t, jokes)
 				require.Len(t, jokes, 10)
@@ -77,7 +77,7 @@ func TestGetAll(t *testing.T) {
 			page:  2,
 			stub: func(t *testing.T, limit, page int64) {
 				skip := (page - 1) * limit
-				jokes, err := testRepo.repo.GetAll(ctx, skip, limit)
+				jokes, err := testRepo.Repo.GetAll(ctx, skip, limit)
 				require.NoError(t, err)
 				require.NotEmpty(t, jokes)
 				require.Len(t, jokes, 10)
@@ -93,7 +93,7 @@ func TestGetAll(t *testing.T) {
 			page:  1,
 			stub: func(t *testing.T, limit, page int64) {
 				skip := (page - 1) * limit
-				jokes, err := testRepo.repo.GetAll(ctx, skip, limit)
+				jokes, err := testRepo.Repo.GetAll(ctx, skip, limit)
 				require.NoError(t, err)
 				require.NotEmpty(t, jokes)
 				require.Len(t, jokes, 5)
@@ -116,10 +116,10 @@ func TestDelete(t *testing.T) {
 	ctx := context.Background()
 	joke := createJoke(t, ctx)
 
-	err := testRepo.repo.Delete(ctx, joke.ID)
+	err := testRepo.Repo.Delete(ctx, joke.ID)
 	require.NoError(t, err)
 
-	deletedJoke, err := testRepo.repo.Get(ctx, joke.ID)
+	deletedJoke, err := testRepo.Repo.Get(ctx, joke.ID)
 	require.Error(t, err)
 	require.Empty(t, deletedJoke)
 }
@@ -132,7 +132,7 @@ func createJoke(t *testing.T, ctx context.Context) models.Jusgo {
 		CreatedAt: time.Now(),
 	}
 
-	joke, err := testRepo.repo.Create(ctx, data)
+	joke, err := testRepo.Repo.Create(ctx, data)
 	require.NoError(t, err)
 	require.NotEmpty(t, joke)
 	require.Equal(t, data, joke)

@@ -28,7 +28,7 @@ func TestCreateJoke(t *testing.T) {
 		Return(joke, nil)
 
 	service := NewService(repo)
-	createdJoke, err := service.srv.CreateJoke(ctx, joke)
+	createdJoke, err := service.Srvc.CreateJoke(ctx, joke)
 	require.NoError(t, err)
 	require.NotEmpty(t, createdJoke)
 	require.Equal(t, joke, createdJoke)
@@ -50,7 +50,7 @@ func TestGetJoke(t *testing.T) {
 		Return(joke, nil)
 
 	service := NewService(repo)
-	joke2, err := service.srv.GetJoke(ctx, joke.ID.Hex())
+	joke2, err := service.Srvc.GetJoke(ctx, joke.ID.Hex())
 	require.NoError(t, err)
 	require.NotEmpty(t, joke2)
 	require.Equal(t, joke, joke2)
@@ -74,7 +74,7 @@ func TestGetAllJokes(t *testing.T) {
 		Return(jokes, nil)
 
 	service := NewService(repo)
-	allJokes, err := service.srv.GetAllJokes(ctx, page, limit)
+	allJokes, err := service.Srvc.GetAllJokes(ctx, page, limit)
 	require.NoError(t, err)
 	require.NotEmpty(t, allJokes)
 	require.Len(t, jokes, 10)
@@ -97,7 +97,7 @@ func TestUpdateJoke(t *testing.T) {
 		Return(joke, nil)
 
 	service := NewService(repo)
-	updatedJoke, err := service.srv.UpdateJoke(ctx, joke.ID.Hex(), joke)
+	updatedJoke, err := service.Srvc.UpdateJoke(ctx, joke.ID.Hex(), joke)
 	require.NoError(t, err)
 	require.NotEmpty(t, updatedJoke)
 	require.Equal(t, joke, updatedJoke)
@@ -119,7 +119,7 @@ func TestDeleteJoke(t *testing.T) {
 		Return(nil)
 
 	service := NewService(repo)
-	err := service.srv.DeleteJoke(ctx, joke.ID.Hex())
+	err := service.Srvc.DeleteJoke(ctx, joke.ID.Hex())
 	require.NoError(t, err)
 }
 

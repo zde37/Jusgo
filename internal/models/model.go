@@ -6,6 +6,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type JokeRequest struct {
+	Joke string `json:"joke" validate:"required"`
+}
+
 type Jusgo struct {
 	ID        primitive.ObjectID `bson:"_id" json:"id"`
 	Joke      string             `bson:"joke" json:"joke"`

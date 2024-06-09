@@ -10,7 +10,10 @@ import (
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/zde37/Jusgo/internal/controller"
 	"github.com/zde37/Jusgo/internal/database"
+	"github.com/zde37/Jusgo/internal/repository"
+	"github.com/zde37/Jusgo/internal/service"
 )
 
 func main() {
@@ -19,17 +22,19 @@ func main() {
 	client, cancel, err := database.ConnectToMongoDB(os.Getenv("DB_SOURCE"), ctx)
 	if err != nil {
 		log.Fatalf("failed to connect to mongodb: %v", err)
-	}  
-	// collection := client.Database(os.Getenv("DATABASE")).Collection(os.Getenv("COLLECTION"))
-	
+	}
+	collection := client.Database(os.Getenv("DATABASE")).Collection(os.Getenv("COLLECTION"))
+	r := repository.NewRepository(collection)
+	s := service.NewService(r.Repo)
+	h := controller.NewHandler(s.Srvc)
+
 	defer cancel()
 	defer client.Disconnect(ctx)
- 
+
 	// setup server
-	mux := http.NewServeMux()
 	srv := &http.Server{
 		Addr:         os.Getenv("SERVER_ADDRESS"),
-		Handler:      mux,
+		Handler:      h.Hndl.Mux(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
@@ -44,7 +49,7 @@ func main() {
 		}
 	}()
 
-	<-quit // block until we receive an interrupt signal 
+	<-quit // block until we receive an interrupt signal
 
 	context, cancel := context.WithTimeout(ctx, 15*time.Second) // create a deadline to wait for shutdown
 	defer cancel()

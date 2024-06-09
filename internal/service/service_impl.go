@@ -20,10 +20,6 @@ func newServiceImpl(repo repository.RepositoryProvider) *serviceImpl {
 }
 
 func (s *serviceImpl) CreateJoke(ctx context.Context, data models.Jusgo) (models.Jusgo, error) {
-	data.ID = primitive.NewObjectID()
-	
-	// data.CreatedAt = time.Now()
-	// data.UpdatedAt = time.Now() 
 	return s.repo.Create(ctx, data)
 }
 

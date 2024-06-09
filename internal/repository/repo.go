@@ -17,11 +17,11 @@ type RepositoryProvider interface {
 }
 
 type Repository struct {
-	repo RepositoryProvider
+	Repo RepositoryProvider
 }
 
 func NewRepository(collection *mongo.Collection) *Repository {
 	return &Repository{
-		repo: newRepositoryImpl(collection),
+		Repo: newRepositoryImpl(collection),
 	}
 }
