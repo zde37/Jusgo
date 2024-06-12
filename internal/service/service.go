@@ -10,7 +10,7 @@ import (
 type ServiceProvider interface {
 	CreateJoke(ctx context.Context, data models.Jusgo) (models.Jusgo, error)
 	GetJoke(ctx context.Context, id string) (models.Jusgo, error)
-	UpdateJoke(ctx context.Context, id string, data models.Jusgo) (models.Jusgo, error)
+	UpdateJoke(ctx context.Context, data models.Jusgo) (models.Jusgo, error)
 	DeleteJoke(ctx context.Context, id string) error
 	GetAllJokes(ctx context.Context, page, limit int) ([]models.Jusgo, error)
 }

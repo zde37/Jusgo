@@ -100,16 +100,16 @@ func (mr *MockServiceProviderMockRecorder) GetJoke(arg0, arg1 any) *gomock.Call 
 }
 
 // UpdateJoke mocks base method.
-func (m *MockServiceProvider) UpdateJoke(arg0 context.Context, arg1 string, arg2 models.Jusgo) (models.Jusgo, error) {
+func (m *MockServiceProvider) UpdateJoke(arg0 context.Context, arg1 models.Jusgo) (models.Jusgo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateJoke", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UpdateJoke", arg0, arg1)
 	ret0, _ := ret[0].(models.Jusgo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateJoke indicates an expected call of UpdateJoke.
-func (mr *MockServiceProviderMockRecorder) UpdateJoke(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockServiceProviderMockRecorder) UpdateJoke(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJoke", reflect.TypeOf((*MockServiceProvider)(nil).UpdateJoke), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJoke", reflect.TypeOf((*MockServiceProvider)(nil).UpdateJoke), arg0, arg1)
 }

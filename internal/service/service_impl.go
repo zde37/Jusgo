@@ -39,14 +39,7 @@ func (s *serviceImpl) GetAllJokes(ctx context.Context, page, limit int) ([]model
 
 }
 
-func (s *serviceImpl) UpdateJoke(ctx context.Context, id string, data models.Jusgo) (models.Jusgo, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return data, err
-	}
-
-	data.ID = objectID
-	// data.UpdatedAt = time.Now()
+func (s *serviceImpl) UpdateJoke(ctx context.Context, data models.Jusgo) (models.Jusgo, error) {
 	return s.repo.Update(ctx, data)
 }
 

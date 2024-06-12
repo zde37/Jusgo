@@ -43,7 +43,6 @@ func TestGetJoke(t *testing.T) {
 
 	repo := mockproviders.NewMockRepositoryProvider(ctrl)
 
-	// build stubs
 	repo.EXPECT().
 		Get(gomock.Any(), gomock.Eq(joke.ID)).
 		Times(1).
@@ -67,7 +66,6 @@ func TestGetAllJokes(t *testing.T) {
 
 	repo := mockproviders.NewMockRepositoryProvider(ctrl)
 
-	// build stubs
 	repo.EXPECT().
 		GetAll(gomock.Any(), gomock.Eq(int64(skip)), gomock.Eq(int64(limit))).
 		Times(1).
@@ -90,14 +88,13 @@ func TestUpdateJoke(t *testing.T) {
 
 	repo := mockproviders.NewMockRepositoryProvider(ctrl)
 
-	// build stubs
 	repo.EXPECT().
 		Update(gomock.Any(), gomock.Eq(joke)).
 		Times(1).
 		Return(joke, nil)
 
 	service := NewService(repo)
-	updatedJoke, err := service.Srvc.UpdateJoke(ctx, joke.ID.Hex(), joke)
+	updatedJoke, err := service.Srvc.UpdateJoke(ctx, joke)
 	require.NoError(t, err)
 	require.NotEmpty(t, updatedJoke)
 	require.Equal(t, joke, updatedJoke)
@@ -112,7 +109,6 @@ func TestDeleteJoke(t *testing.T) {
 
 	repo := mockproviders.NewMockRepositoryProvider(ctrl)
 
-	// build stubs
 	repo.EXPECT().
 		Delete(gomock.Any(), gomock.Eq(joke.ID)).
 		Times(1).

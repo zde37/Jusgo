@@ -7,12 +7,14 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/zde37/Jusgo/internal/models"
 	"github.com/zde37/Jusgo/internal/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type handlerImpl struct {
@@ -112,11 +114,14 @@ func (h *handlerImpl) GetJoke(w http.ResponseWriter, r *http.Request) error {
 
 	id := r.PathValue("id")
 	if id == "" {
-		return NewErrorStatus(errors.New("missing joke id"), http.StatusBadRequest)
+		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
 	}
 
 	joke, err := h.service.GetJoke(r.Context(), id)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return NewErrorStatus(err, http.StatusNotFound)
+		}
 		return NewErrorStatus(err, http.StatusInternalServerError)
 	}
 
@@ -130,7 +135,44 @@ func (h *handlerImpl) GetAllJokes(w http.ResponseWriter, r *http.Request) error 
 		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
 	}
 
-	return nil
+	page, limit, err := parsePaginationParams(r)
+	if err != nil {
+		return NewErrorStatus(err, http.StatusBadRequest)
+	}
+
+	jokes, err := h.service.GetAllJokes(r.Context(), page, limit)
+	if err != nil {
+		return NewErrorStatus(err, http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(jokes)
+}
+
+func parsePaginationParams(r *http.Request) (int, int, error) {
+	page := r.URL.Query().Get("page")
+	limit := r.URL.Query().Get("limit")
+
+	p := 1
+	l := 10
+
+	var err error
+	if page != "" {
+		p, err = strconv.Atoi(page)
+		if err != nil || p < 1 {
+			return 0, 0, errors.New("invalid page number")
+		}
+	}
+
+	if limit != "" {
+		l, err = strconv.Atoi(limit)
+		if err != nil || l < 1 {
+			return 0, 0, errors.New("invalid limit number")
+		}
+	}
+
+	return p, l, nil
 }
 
 func (h *handlerImpl) UpdateJoke(w http.ResponseWriter, r *http.Request) error {
@@ -138,7 +180,40 @@ func (h *handlerImpl) UpdateJoke(w http.ResponseWriter, r *http.Request) error {
 		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
 	}
 
-	return nil
+	id := r.PathValue("id")
+	if id == "" {
+		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
+	}
+
+	var req models.JokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err == io.EOF {
+			return NewErrorStatus(errors.New("request body must not be empty"), http.StatusBadRequest)
+		}
+		return NewErrorStatus(err, http.StatusBadRequest)
+	}
+
+	if err := h.validate.Struct(&req); err != nil {
+		return NewErrorStatus(err, http.StatusBadRequest)
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id) // convert id to mongodb primitive ID
+	if err != nil {
+		return NewErrorStatus(errors.New("failed to create object id"), http.StatusInternalServerError)
+	}
+
+	updatedJoke, err := h.service.UpdateJoke(r.Context(), models.Jusgo{
+		ID:        objectID,
+		Joke:      req.Joke,
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		return NewErrorStatus(err, http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(updatedJoke)
 }
 
 func (h *handlerImpl) DeleteJoke(w http.ResponseWriter, r *http.Request) error {
@@ -146,5 +221,23 @@ func (h *handlerImpl) DeleteJoke(w http.ResponseWriter, r *http.Request) error {
 		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
 	}
 
+	id := r.PathValue("id")
+	if id == "" {
+		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
+	}
+
+	// check if joke exists first
+	if _, err := h.service.GetJoke(r.Context(), id); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return NewErrorStatus(err, http.StatusNotFound)
+		}
+		return NewErrorStatus(err, http.StatusInternalServerError)
+	}
+
+	if err := h.service.DeleteJoke(r.Context(), id); err != nil {
+		return NewErrorStatus(err, http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
 	return nil
 }

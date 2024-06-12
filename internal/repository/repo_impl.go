@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"context" 
+	"context"
 
 	"github.com/zde37/Jusgo/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -48,12 +48,12 @@ func (r *repositoryImpl) GetAll(ctx context.Context, skip, limit int64) ([]model
 	options.SetLimit(limit)
 
 	cursor, err := r.collection.Find(ctx, bson.M{}, options)
-	if err != nil { 
+	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var jokes []models.Jusgo
+	jokes := []models.Jusgo{} // initialize it so it will return '[]' instead of null if the list is empty
 	if err = cursor.All(ctx, &jokes); err != nil {
 		return nil, err
 	}
