@@ -41,6 +41,7 @@ func (h *handlerImpl) Mux() *http.ServeMux {
 }
 
 func (h *handlerImpl) RegisterRoutes() {
+	h.server.HandleFunc("/hello-world", middleware(h.HealthHandler))
 	h.server.HandleFunc("/v1/jokes", middleware(h.CreateJoke))
 	h.server.HandleFunc("/v1/jokes/{id}", middleware(h.GetJoke))
 	h.server.HandleFunc("/v1/jokes/all", middleware(h.GetAllJokes))
@@ -72,6 +73,14 @@ func middleware(f func(http.ResponseWriter, *http.Request) error) http.HandlerFu
 
 		log.Printf("Log => status: success, method: %s, path: %s, duration: %s", r.Method, r.RequestURI, time.Since(startTime))
 	}
+}
+
+func (h *handlerImpl) HealthHandler(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Hello world")); err != nil {
+		return NewErrorStatus(err, http.StatusInternalServerError)
+	}
+	return nil
 }
 
 func (h *handlerImpl) CreateJoke(w http.ResponseWriter, r *http.Request) error {

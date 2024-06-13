@@ -42,6 +42,8 @@ func main() {
 	quit := make(chan os.Signal, 1) // channel to listen for OS interrupt signals
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	go cronJob()
+
 	go func() {
 		log.Printf("server started on %s", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -58,4 +60,16 @@ func main() {
 		log.Fatalf("server forced to shutdown: %v", err)
 	}
 	log.Println("server exited")
+}
+
+// cronJob sends a request to the health route every 13 minute. To prevent the server from sleeping on render(default: 15 minutes)
+func cronJob() {
+	for range time.Tick(13 * time.Minute) {
+		_, err := http.Get("https://jusgo.onrender.com/hello-world")
+		if err != nil {
+			log.Println("server is not healthy")
+			return
+		}
+		log.Println("server is healthy")
+	}
 }
