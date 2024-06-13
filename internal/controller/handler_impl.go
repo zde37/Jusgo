@@ -42,11 +42,11 @@ func (h *handlerImpl) Mux() *http.ServeMux {
 
 func (h *handlerImpl) RegisterRoutes() {
 	h.server.HandleFunc("/hello-world", middleware(h.HealthHandler))
-	h.server.HandleFunc("/v1/jokes", middleware(h.CreateJoke))
+	// h.server.HandleFunc("/v1/jokes", middleware(h.CreateJoke)) // admin only
 	h.server.HandleFunc("/v1/jokes/{id}", middleware(h.GetJoke))
 	h.server.HandleFunc("/v1/jokes/all", middleware(h.GetAllJokes))
-	h.server.HandleFunc("/v1/jokes/update/{id}", middleware(h.UpdateJoke))
-	h.server.HandleFunc("/v1/jokes/delete/{id}", middleware(h.DeleteJoke))
+	// h.server.HandleFunc("/v1/jokes/update/{id}", middleware(h.UpdateJoke)) // admin only
+	// h.server.HandleFunc("/v1/jokes/delete/{id}", middleware(h.DeleteJoke)) // admin only
 }
 
 func middleware(f func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
