@@ -8,6 +8,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.15.0
 	go.uber.org/mock v0.4.0
+	golang.org/x/time v0.5.0
 )
 
 require (

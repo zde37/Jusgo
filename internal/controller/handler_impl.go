@@ -1,29 +1,18 @@
 package controller
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/zde37/Jusgo/internal/models"
 	"github.com/zde37/Jusgo/internal/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-)
-
-const (
-	authorizationHeaderKey  = "authorization"
-	authorizationTypeBearer = "bearer"
 )
 
 type handlerImpl struct {
@@ -50,75 +39,18 @@ func (h *handlerImpl) Mux() *http.ServeMux {
 }
 
 func (h *handlerImpl) RegisterRoutes() {
+	rl := newRateLimiter() 
+
 	h.server.Handle("GET /hello-world", middleware(h.HealthHandler))
-	h.server.Handle("POST /jokes", ensureAdmin(middleware(h.CreateJoke))) // admin only
-	h.server.Handle("GET /jokes/{id}", middleware(h.GetJoke))
-	h.server.Handle("GET /jokes", middleware(h.GetAllJokes))
+	h.server.Handle("POST /jokes", limitMiddleware(rl, ensureAdmin(middleware(h.CreateJoke)))) // admin only
+	h.server.Handle("GET /jokes/{id}", limitMiddleware(rl, middleware(h.GetJoke)))
+	h.server.Handle("GET /jokes", limitMiddleware(rl, middleware(h.GetAllJokes)))
 	h.server.Handle("PATCH /jokes/{id}", ensureAdmin(middleware(h.UpdateJoke)))  // admin only
 	h.server.Handle("DELETE /jokes/{id}", ensureAdmin(middleware(h.DeleteJoke))) // admin only
 
 	v1 := http.NewServeMux()
 	v1.Handle("/v1/", http.StripPrefix("/v1", h.server))
 	h.server = v1
-}
-
-func middleware(f func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-
-		r = r.WithContext(ctx)
-
-		startTime := time.Now()
-		if err := f(w, r); err != nil {
-			errRes, statusCode := ErrorInfo(err)
-
-			// Log the error with status
-			log.Printf("Log => status: failed, error: %s, status_code: %d, method: %s, path: %s, duration: %s", errRes, statusCode, r.Method, r.RequestURI, time.Since(startTime))
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(statusCode)
-			if err = json.NewEncoder(w).Encode(errRes); err != nil {
-				log.Printf("failed to write response: %v", err)
-			}
-			return
-		}
-
-		log.Printf("Log => status: success, method: %s, path: %s, duration: %s", r.Method, r.RequestURI, time.Since(startTime))
-	}
-}
-
-func ensureAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorizationHeader := r.Header.Get(authorizationHeaderKey)
-		if len(authorizationHeader) == 0 {
-			err := fmt.Errorf("authorization header is not provided")
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		fields := strings.Fields(authorizationHeader)
-		if len(fields) < 2 {
-			err := fmt.Errorf("invalid authorization header format")
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		authorizationType := strings.ToLower(fields[0])
-		if authorizationType != authorizationTypeBearer {
-			err := fmt.Errorf("unsupported authorization type %s", authorizationType)
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		accessToken := fields[1]
-		if accessToken != os.Getenv("TOKEN") {
-			err := fmt.Errorf("invalid token")
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (h *handlerImpl) HealthHandler(w http.ResponseWriter, r *http.Request) error {
