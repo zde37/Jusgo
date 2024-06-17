@@ -4,17 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/zde37/Jusgo/internal/models"
 	"github.com/zde37/Jusgo/internal/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+)
+
+const (
+	authorizationHeaderKey  = "authorization"
+	authorizationTypeBearer = "bearer"
 )
 
 type handlerImpl struct {
@@ -41,12 +50,16 @@ func (h *handlerImpl) Mux() *http.ServeMux {
 }
 
 func (h *handlerImpl) RegisterRoutes() {
-	h.server.HandleFunc("/hello-world", middleware(h.HealthHandler))
-	// h.server.HandleFunc("/v1/jokes", middleware(h.CreateJoke)) // admin only
-	h.server.HandleFunc("/v1/jokes/{id}", middleware(h.GetJoke))
-	h.server.HandleFunc("/v1/jokes/all", middleware(h.GetAllJokes))
-	// h.server.HandleFunc("/v1/jokes/update/{id}", middleware(h.UpdateJoke)) // admin only
-	// h.server.HandleFunc("/v1/jokes/delete/{id}", middleware(h.DeleteJoke)) // admin only
+	h.server.Handle("GET /hello-world", middleware(h.HealthHandler))
+	h.server.Handle("POST /jokes", ensureAdmin(middleware(h.CreateJoke))) // admin only
+	h.server.Handle("GET /jokes/{id}", middleware(h.GetJoke))
+	h.server.Handle("GET /jokes", middleware(h.GetAllJokes))
+	h.server.Handle("PATCH /jokes/{id}", ensureAdmin(middleware(h.UpdateJoke)))  // admin only
+	h.server.Handle("DELETE /jokes/{id}", ensureAdmin(middleware(h.DeleteJoke))) // admin only
+
+	v1 := http.NewServeMux()
+	v1.Handle("/v1/", http.StripPrefix("/v1", h.server))
+	h.server = v1
 }
 
 func middleware(f func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
@@ -75,6 +88,39 @@ func middleware(f func(http.ResponseWriter, *http.Request) error) http.HandlerFu
 	}
 }
 
+func ensureAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get(authorizationHeaderKey)
+		if len(authorizationHeader) == 0 {
+			err := fmt.Errorf("authorization header is not provided")
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		fields := strings.Fields(authorizationHeader)
+		if len(fields) < 2 {
+			err := fmt.Errorf("invalid authorization header format")
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		authorizationType := strings.ToLower(fields[0])
+		if authorizationType != authorizationTypeBearer {
+			err := fmt.Errorf("unsupported authorization type %s", authorizationType)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		accessToken := fields[1]
+		if accessToken != os.Getenv("TOKEN") {
+			err := fmt.Errorf("invalid token")
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (h *handlerImpl) HealthHandler(w http.ResponseWriter, r *http.Request) error {
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte("Hello world")); err != nil {
@@ -84,9 +130,6 @@ func (h *handlerImpl) HealthHandler(w http.ResponseWriter, r *http.Request) erro
 }
 
 func (h *handlerImpl) CreateJoke(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodPost {
-		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
-	}
 	var req models.JokeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		if err == io.EOF {
@@ -117,10 +160,6 @@ func (h *handlerImpl) CreateJoke(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *handlerImpl) GetJoke(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodGet {
-		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
 		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
@@ -140,10 +179,6 @@ func (h *handlerImpl) GetJoke(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *handlerImpl) GetAllJokes(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodGet {
-		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
-	}
-
 	page, limit, err := parsePaginationParams(r)
 	if err != nil {
 		return NewErrorStatus(err, http.StatusBadRequest)
@@ -185,10 +220,6 @@ func parsePaginationParams(r *http.Request) (int, int, error) {
 }
 
 func (h *handlerImpl) UpdateJoke(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodPatch {
-		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
 		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
@@ -226,10 +257,6 @@ func (h *handlerImpl) UpdateJoke(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *handlerImpl) DeleteJoke(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodDelete {
-		return NewErrorStatus(errors.New("method not allowed"), http.StatusMethodNotAllowed)
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
 		return NewErrorStatus(errors.New("id is required"), http.StatusBadRequest)
